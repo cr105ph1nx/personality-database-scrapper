@@ -1,6 +1,17 @@
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import re
+import os
+
+absolutePATH = "database/"
+
+def CreateFolder(dirname):
+    # Create target Directory if don't exist
+    if not os.path.exists(absolutePATH + dirname):
+        os.mkdir(absolutePATH + dirname)
+        print("Directory " , dirname ,  " Created ")
+    else:    
+        print("Directory " , dirname ,  " already exists")
 
 def ConfigSelenium(driver_location, binary_location):
     options = webdriver.ChromeOptions()
@@ -28,6 +39,7 @@ def ExtractData(page_source, profiles):
         personality_class = card_profile.find('div', class_='card-container-personality')
         mbti = personality_class.find(text=True)
         profile.append(mbti)
+        CreateFolder(mbti)
 
         # Get MBTI personality type
         id = re.search('(?<=profile\-).*', card_profile.get('id'))[0] # get current element ID
