@@ -5,3 +5,5 @@ pyvenv.cfg
 
 # project folders 
 database/*
+# exception to the rule
+!database/.gitkeep 
