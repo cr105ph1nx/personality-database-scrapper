@@ -2,6 +2,3 @@
 lib/
 bin/
 pyvenv.cfg
-
-# project folders 
-database/
