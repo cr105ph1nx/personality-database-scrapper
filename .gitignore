@@ -1,0 +1,7 @@
+# venv files and folders
+lib/
+bin/
+pyvenv.cfg
+
+# project folders 
+database/
