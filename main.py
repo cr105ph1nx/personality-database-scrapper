@@ -8,7 +8,6 @@ def ConfigSelenium(driver_location, binary_location):
     options.add_argument('--ignore-certificate-errors') # accessing the Chrome browser driver while ignoring certificate errors
     options.add_argument('--incognito') # accessing the Chrome browser driver in incognito mode
     options.add_argument('--headless') # accessing the Chrome browser driver without opening a browser window
-
     driver = webdriver.Chrome(executable_path = driver_location, options = options)
 
     return driver
@@ -17,32 +16,47 @@ def TraverseDOM(driver, PDB_url):
     driver.get(PDB_url) # specifying the URL of the webpage
     page_source = driver.page_source
 
-    return page_source
+    return page_source 
 
-def ExtractData(page_source, personality_types):
+def ExtractData(page_source, profiles):
     soup = BeautifulSoup(page_source, 'lxml')
     for card_profile in soup.findAll('div', attrs={'id': re.compile('card-profile-\d+')}):
+        # Initialize array
+        profile = []
+
         # Get MBTI personality type
         personality_class = card_profile.find('div', class_='card-container-personality')
         mbti = personality_class.find(text=True)
+        profile.append(mbti)
 
-        print('\n')
+        # Get MBTI personality type
+        id = re.search('(?<=profile\-).*', card_profile.get('id'))[0] # get current element ID
+        image_url = "https://www.personality-database.com/profile_images/"+ id +".png"
+        profile.append(image_url)
 
-    return personality_types
+        # Add profile 
+        profiles.append(profile)
+
+    return profiles
 
 
 def main():
     PDB_url = 'https://www.personality-database.com/trending'
-    personality_types = []
+    profiles = []
     driver_location = '/usr/bin/chromedriver'
     binary_location = '/usr/bin/google-chrome'
-
+    
     # Configuring Selenium webdriver
     driver = ConfigSelenium(driver_location, binary_location)
     # Traversing through the DOM of the PDB webpage
     page_source = TraverseDOM(driver, PDB_url)
     # Extracting the data with bs4
-    personality_types = ExtractData(page_source, personality_types)
+    profiles = ExtractData(page_source, profiles)
+    # Closing browser
+    driver.close()
+    # Display data
+    print(profiles)
+    
     
 
 if __name__ == "__main__":
