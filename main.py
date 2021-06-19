@@ -19,8 +19,7 @@ def DownloadImage(dirname, url):
             for chunk in r:
                 f.write(chunk)
     else:
-        # We will write all of the images back to the broken_images list:
-        broken_images.append(url)
+        print("Oops... must be a bad url!")
     # Return to absolute path
     os.chdir('../')
 
