@@ -81,19 +81,29 @@ def ExtractData(driver, PDB_url):
             print("\nOff to the next page we go!")
         else:
             print("\nSeems like you got everything here!")
+            # writing handled url to file 
+            file2 = open('../urls_handled.txt', 'a')
+            file2.write(PDB_url)
+            file2.close()
             break
 
 def main():
-    PDB_url = 'https://www.personality-database.com/subcategory/3392/people-of-classic-hollywood-pop-culture-mbti-personality-type'
+    # Set location of driver and binary
     driver_location = '/usr/bin/chromedriver'
     binary_location = '/usr/bin/google-chrome'
-
     # Change directory to database/
     os.chdir('database/')
     # Configuring Selenium webdriver
     driver = ConfigSelenium(driver_location, binary_location)
-    # Extracting the data with bs4
-    ExtractData(driver, PDB_url)
+    # Read urls.txt
+    file1 = open('../urls.txt', 'r')
+    urls = file1.readlines()
+    # Strips the newline character
+    for url in urls:
+        # Display current url
+        print(format(url.strip()))
+        # Extracting the data with bs4
+        ExtractData(driver, url)
     # Closing browser
     driver.close()
 
