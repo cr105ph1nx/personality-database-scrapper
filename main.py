@@ -1,18 +1,24 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.select import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import re
 import os
 import requests
-import time
+
+def WaitDriver(driver, xpath):
+    try:
+        # wait 10 seconds before looking for element
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, xpath)))
+    except:
+        print("Failed to wait for driver.")
 
 def DownloadImage(dirname, url):
     # Change directory to corresponding mbti personality folder
     os.chdir(dirname)
     # We can split the file based upon / and extract the last split within the python list below:
     file_name = url.split('/')[-1]
-    print(f"This is the file name: {file_name}")
     # let's send a request to the image URL:
     r = requests.get(url, stream=True)
     # We can check that the status code is 200 before doing anything else:
@@ -21,55 +27,64 @@ def DownloadImage(dirname, url):
         with open(file_name, 'wb') as f:
             for chunk in r:
                 f.write(chunk)
+        print(f"Downloaded image: {file_name} to {dirname} folder")
     else:
         print("Oops... must be a bad url!")
     # Return to absolute path
     os.chdir('../')
 
 def CreateFolder(dirname):
-    # Create target Directory if don't exist
+    # Create target Directory if it doesn't exist
     if not os.path.exists(dirname):
         os.mkdir(dirname)
-        print("Directory " , dirname ,  " Created ")
-    else:    
-        print("Directory " , dirname ,  " already exists")
 
 def ConfigSelenium(driver_location, binary_location):
     options = webdriver.ChromeOptions()
     options.binary_location = binary_location # adding the binary location of the browser 
-    # options.add_argument('--ignore-certificate-errors') # accessing the Chrome browser driver while ignoring certificate errors
-    # options.add_argument('--incognito') # accessing the Chrome browser driver in incognito mode
-    # options.add_argument('--headless') # accessing the Chrome browser driver without opening a browser window
+    options.add_argument('--ignore-certificate-errors') # accessing the Chrome browser driver while ignoring certificate errors
+    options.add_argument('--incognito') # accessing the Chrome browser driver in incognito mode
+    options.add_argument('--headless') # accessing the Chrome browser driver without opening a browser window
     driver = webdriver.Chrome(executable_path = driver_location, options = options)
 
     return driver
 
-def TraverseDOM(driver, PDB_url):
-    driver.get(PDB_url) # specifying the URL of the webpage 
-    page = driver.find_element(By.ID, 'list-size')
-    pageDD = Select(page)
-    pageDD.select_by_value('250')
-    time.sleep(3)
+def ExtractData(driver, PDB_url):
+    # Specifying the URL of the webpage 
+    driver.get(PDB_url)
+    while True:
+        WaitDriver(driver, '//*[@id="root"]/div/div[2]/div/div/div/div[2]/div/div/div[4]') # Wait for driver until class is present in DOM
+        # Fetch page source
+        page_source = driver.page_source
+        # Parse page source
+        soup = BeautifulSoup(page_source, 'lxml')
+        # Fetch profile cards from current page
+        cards_profile = soup.findAll('div', attrs={'id': re.compile('card-profile-\d+')})
+        # Browse current page
+        for card_profile in cards_profile:
+            # Get MBTI personality type
+            personality_class = card_profile.find('div', class_='card-container-personality')
+            mbti = personality_class.find(text=True)
+            # Check if MBTI personality type is known
+            if(mbti != "XXXX"):
+                CreateFolder(mbti)
+                # Get face image
+                id = re.search('(?<=profile\-).*', card_profile.get('id'))[0] # get current element ID
+                image_url = "https://www.personality-database.com/profile_images/"+ id +".png"
+                DownloadImage(mbti, image_url)
 
-    page_source = driver.page_source
-
-    return page_source 
-
-def ExtractData(page_source):
-    soup = BeautifulSoup(page_source, 'lxml')
-    for card_profile in soup.findAll('div', attrs={'id': re.compile('card-profile-\d+')}):
-        # Get MBTI personality type
-        personality_class = card_profile.find('div', class_='card-container-personality')
-        mbti = personality_class.find(text=True)
-        CreateFolder(mbti)
-
-        # Get MBTI personality type
-        id = re.search('(?<=profile\-).*', card_profile.get('id'))[0] # get current element ID
-        image_url = "https://www.personality-database.com/profile_images/"+ id +".png"
-        DownloadImage(mbti, image_url)
+        # Direct to next page 
+        WaitDriver(driver, '//a[text()=">>>"]') # Wait for driver until next button is present in DOM
+        next_button = driver.find_element_by_xpath('//a[text()=">>>"]')            
+        driver.execute_script('arguments[0].click();', next_button)
+        # Check if current page empty
+        if(len(cards_profile)>0):
+            print("\nOff to the next page we go!")
+        else:
+            print("\nSeems like you got everything here!")
+            break
 
 def main():
-    PDB_url = 'https://www.personality-database.com/subcategory/270/activists-nongovernmental-politics-political-mbti-personality-type'
+    PDB_url = 'https://www.personality-database.com/subcategory/3392/people-of-classic-hollywood-pop-culture-mbti-personality-type'
     driver_location = '/usr/bin/chromedriver'
     binary_location = '/usr/bin/google-chrome'
 
@@ -77,13 +92,10 @@ def main():
     os.chdir('database/')
     # Configuring Selenium webdriver
     driver = ConfigSelenium(driver_location, binary_location)
-    # Traversing through the DOM of the PDB webpage
-    page_source = TraverseDOM(driver, PDB_url)
     # Extracting the data with bs4
-    ExtractData(page_source)
+    ExtractData(driver, PDB_url)
     # Closing browser
     driver.close()
-    
 
 if __name__ == "__main__":
     main()
