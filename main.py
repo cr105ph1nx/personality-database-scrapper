@@ -1,8 +1,11 @@
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.select import Select
 from bs4 import BeautifulSoup
 import re
 import os
 import requests
+import time
 
 def DownloadImage(dirname, url):
     # Change directory to corresponding mbti personality folder
@@ -34,15 +37,20 @@ def CreateFolder(dirname):
 def ConfigSelenium(driver_location, binary_location):
     options = webdriver.ChromeOptions()
     options.binary_location = binary_location # adding the binary location of the browser 
-    options.add_argument('--ignore-certificate-errors') # accessing the Chrome browser driver while ignoring certificate errors
-    options.add_argument('--incognito') # accessing the Chrome browser driver in incognito mode
-    options.add_argument('--headless') # accessing the Chrome browser driver without opening a browser window
+    # options.add_argument('--ignore-certificate-errors') # accessing the Chrome browser driver while ignoring certificate errors
+    # options.add_argument('--incognito') # accessing the Chrome browser driver in incognito mode
+    # options.add_argument('--headless') # accessing the Chrome browser driver without opening a browser window
     driver = webdriver.Chrome(executable_path = driver_location, options = options)
 
     return driver
 
 def TraverseDOM(driver, PDB_url):
-    driver.get(PDB_url) # specifying the URL of the webpage
+    driver.get(PDB_url) # specifying the URL of the webpage 
+    page = driver.find_element(By.ID, 'list-size')
+    pageDD = Select(page)
+    pageDD.select_by_value('250')
+    time.sleep(3)
+
     page_source = driver.page_source
 
     return page_source 
@@ -61,7 +69,7 @@ def ExtractData(page_source):
         DownloadImage(mbti, image_url)
 
 def main():
-    PDB_url = 'https://www.personality-database.com/trending'
+    PDB_url = 'https://www.personality-database.com/subcategory/270/activists-nongovernmental-politics-political-mbti-personality-type'
     driver_location = '/usr/bin/chromedriver'
     binary_location = '/usr/bin/google-chrome'
 
@@ -78,5 +86,4 @@ def main():
     
 
 if __name__ == "__main__":
-    
     main()
